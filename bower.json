@@ -1,0 +1,33 @@
+{
+  "name": "angular-payroc",
+  "main": "angular-payroc.js",
+  "version": "0.1.0",
+  "authors": [
+    "zgbjgg <zgbjgg@gmail.com>"
+  ],
+  "description": "angular directive for payroc three-steps",
+  "moduleType": [
+    "amd",
+    "es6",
+    "globals",
+    "node",
+    "yui"
+  ],
+  "keywords": [
+    "payroc",
+    "angular",
+    "directive",
+    "payment"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "angular": ">=1.2.18"
+  }
+}
