@@ -23,9 +23,7 @@
     "body-parser": "^1.9.3",
     "browserify": "^13.0.1",
     "express": "^4.10.4",
-    "request": "^2.75.0",
-    "js2xmlparser": "^2.0.2",
-    "xml2js": "^0.4.17"
+    "node-payroc": "^0.1.1"
   },
   "scripts": {
     "build": "browserify index.js > dist/payroc-angular.js",
