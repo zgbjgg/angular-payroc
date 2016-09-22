@@ -1,0 +1,28 @@
+<html>
+  <head>
+  </head>
+  <body>
+    <h1>Payroc Three Steps Example</h1>
+
+    <div ng-app="example">
+
+      <form btf-form-payroc>
+        <h1>Buy some things</h1>
+        <input
+          type="submit"
+          value="Buy for $14"
+          />
+      </form>
+
+    </div>
+
+    <script src="/angular.js"></script>
+    <script src="/payroc-angular.js"></script>
+    <script>
+      angular.module('example', ['angular-payroc'])
+             .config([ 'payrocConfigProvider', function(payrocConfigProvider) {
+               payrocConfigProvider.setClientPath('/client-path');
+             }]);
+    </script>
+  </body>
+</html>
