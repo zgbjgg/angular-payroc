@@ -7,7 +7,7 @@
     <div ng-app="example">
 
       <form btf-form-payroc>
-        <h1>Buy some things</h1>
+        <h1>Buy some things</h1>     
         <input
           type="submit"
           value="Buy for $14"
@@ -21,7 +21,8 @@
     <script>
       angular.module('example', ['angular-payroc'])
              .config([ 'payrocConfigProvider', function(payrocConfigProvider) {
-               payrocConfigProvider.setClientPath('/client-path');
+               payrocConfigProvider.setStepOnePath('/step-one-path');
+               payrocConfigProvider.setStepTwoPath('/step-two-path');
              }]);
     </script>
   </body>

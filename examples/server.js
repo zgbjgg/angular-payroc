@@ -9,7 +9,8 @@ var app = express()
 
 var gateway = {
   apiKey: '2F822Rw39fx762MaV7Yy86jXGTC7sCDy',
-  url: 'https://payroc.transactiongateway.com/api/v2/three-step'
+  url: 'https://payroc.transactiongateway.com/api/v2/three-step',
+  redirectUrl: 'http://127.0.0.1:8000/token'
 }
 
 var angularStr = fs.readFileSync(path.resolve(__dirname, '../bower_components/angular/angular.js'), 'utf8')
@@ -24,13 +25,13 @@ app.use(bodyParser.json({
   extended: true
 }));
 
-app.post('/client-path', function (req, res) {
+app.post('/step-one-path', function (req, res) {
   /* recover body (json) */
   var jsonBody = req.body;
 
   /* add api key and redirect url */
   jsonBody['api-key'] = gateway.apiKey;
-  jsonBody['redirect-url'] = 'http://127.0.0.1:8000/';
+  jsonBody['redirect-url'] = gateway.redirectUrl;
 
   // to xml
   var xmlRequest = js2xmlparser.parse("sale", jsonBody);
@@ -43,7 +44,6 @@ app.post('/client-path', function (req, res) {
   }, function (error, response, body) {        
     if (!error && response.statusCode == 200) {
       parseString(body, function(err, result) {
-        console.log(result);
         res.send(result);
       });
     } else {
@@ -51,6 +51,30 @@ app.post('/client-path', function (req, res) {
     }
   });
 })
+
+app.post('/step-two-path', function(req, res) {
+  /* recover body in url encoded */
+  var urlEncoded = req.body;
+  var formUrl = urlEncoded['form-url'];
+  delete urlEncoded['form-url'];
+
+  // send request
+  request.post({
+    url: formUrl, 
+    form: urlEncoded
+  }, function(error, response, body) { 
+    if (!error && response.statusCode === 302) {
+      // send redirect location back to client
+      res.send({location: response.headers.location});
+    } else {
+      console.log(error);
+    }
+  }); 
+})
+
+app.get('/token', function (req, res) {
+  res.send('PAYMENT SUCCESS')
+});
 
 app.get('/angular.js', function (req, res) {
   res.send(angularStr)
