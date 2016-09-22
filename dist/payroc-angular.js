@@ -19,10 +19,10 @@ function payrocFactory ( ) {
     }
 
     /* step two: send form url and sensitive data to retirve token id */
-    $payroc.stepTwo = function ( formUrl, sensitiveData ) {
+    $payroc.stepTwo = function ( path, sensitiveData ) {
       var config = {
         method: 'POST',
-        url: formUrl,
+        url: path,
         transformRequest: function(obj) {
           var str = [];
           for(var p in obj)
@@ -30,10 +30,16 @@ function payrocFactory ( ) {
           return str.join("&");
         },
         data: sensitiveData,
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded'}
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
       };
-      console.log(config);
       return $http(config);
+    }
+
+    $payroc.stepThree = function ( path ) {
+      return $http({
+        method: 'GET',
+        url: path
+      });
     }
 
     return $payroc;
@@ -52,12 +58,12 @@ payrocngular.factory('$payroc', [
 ])
 
 payrocngular.provider('payrocConfig', function () {  
-  this.setRedirectUrl = function(redirectUrl) {
-    this.redirectUrl = redirectUrl;
+  this.setStepOnePath = function(stepOnePath) {
+    this.stepOnePath = stepOnePath;
   }
 
-  this.setClientPath = function(clientPath) {
-    this.clientPath = clientPath;
+  this.setStepTwoPath = function(stepTwoPath) {
+    this.stepTwoPath = stepTwoPath;
   }
 
   this.$get =  function() {
@@ -84,19 +90,27 @@ payrocngular.directive('btfFormPayroc', ['$payroc', 'payrocConfig', function($pa
           'shipping-amount': '0.00'  
         };
  
-        var stepOne = $payroc.stepOne(payrocConfig.clientPath, nonSensitiveData);
+        var stepOne = $payroc.stepOne(payrocConfig.stepOnePath, nonSensitiveData);
           stepOne.then(function ( result ) {
             console.log('step one result', result.status);
             var formUrl = result.data.response['form-url'][0];
             var sensitiveData = {
               'billing-cc-number': '4111111111111111',
               'billing-cc-exp': '1012',
-              'cvv': '2001'  
+              'cvv': '2001',
+              'form-url': formUrl 
             };
 
-            var stepTwo = $payroc.stepTwo(formUrl, sensitiveData);
+            var stepTwo = $payroc.stepTwo(payrocConfig.stepTwoPath, sensitiveData);
             stepTwo.then( function ( result ) {
               console.log('step two result', result);
+              var locationUrl = result.data.location;
+              var stepThree = $payroc.stepThree(locationUrl);
+              stepThree.then( function ( result ) {
+                console.log('step three result', result);
+              }, function errorCallback ( response ) {
+                console.log('error in step three payroc', response);
+              });
             }, function errorCallback ( response ) {
               console.log('error in step two payroc', response);
             });
