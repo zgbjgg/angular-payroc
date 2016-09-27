@@ -8,7 +8,7 @@ function payrocFactory ( ) {
   return function payrocAngular ($http) {
     var $payroc = {};
 
-    /* step one: recover non sensitive data and retrieve form url */
+    /* step one: send non sensitive data to server path */
     $payroc.stepOne = function ( path, nonSensitiveData ) {
       return $http({
         method: 'POST',
@@ -18,7 +18,7 @@ function payrocFactory ( ) {
       });
     }
 
-    /* step two: send form url and sensitive data to retirve token id */
+    /* step two: send sensitive data to server path to redirect url */
     $payroc.stepTwo = function ( path, sensitiveData ) {
       var config = {
         method: 'POST',
@@ -35,10 +35,15 @@ function payrocFactory ( ) {
       return $http(config);
     }
 
+    /* step three: consume location redirection url with token */
     $payroc.stepThree = function ( path ) {
+      /* since location url is the redirection url, 
+         then we must parse the full URL */
+      var parser = document.createElement('a');
+      parser.href = path;
       return $http({
         method: 'GET',
-        url: path
+        url: parser.pathname + parser.search
       });
     }
 
@@ -57,69 +62,71 @@ payrocngular.factory('$payroc', [
   payrocFactory()
 ])
 
-payrocngular.provider('payrocConfig', function () {  
-  this.setStepOnePath = function(stepOnePath) {
-    this.stepOnePath = stepOnePath;
-  }
-
-  this.setStepTwoPath = function(stepTwoPath) {
-    this.stepTwoPath = stepTwoPath;
-  }
-
-  this.$get =  function() {
-    return this;
-  }
-});
-
-payrocngular.directive('btfFormPayroc', ['$payroc', 'payrocConfig', function($payroc, payrocConfig) {
-  return {
-    scope: {},
-    controller: function($scope) { },
-    link: function(scope, element, attr) { },
-    compile: function(element) {
-      element.on('submit', function(e) {
-        // Execute step-one and step-two to send non sensitive and sensitive info 
-        var nonSensitiveData = {
-          'amount': '12.00',
-          'currency': 'USD',
-          'order-id': '1234',
-          'order-description': 'Small Order',
-          'merchant-defined-field-1': 'Red',
-          'merchant-defined-field-2': 'Medium',
-          'tax-amount': '0.00',
-          'shipping-amount': '0.00'  
-        };
- 
-        var stepOne = $payroc.stepOne(payrocConfig.stepOnePath, nonSensitiveData);
-          stepOne.then(function ( result ) {
-            console.log('step one result', result.status);
-            var formUrl = result.data.response['form-url'][0];
-            var sensitiveData = {
-              'billing-cc-number': '4111111111111111',
-              'billing-cc-exp': '1012',
-              'cvv': '2001',
-              'form-url': formUrl 
-            };
-
-            var stepTwo = $payroc.stepTwo(payrocConfig.stepTwoPath, sensitiveData);
-            stepTwo.then( function ( result ) {
-              console.log('step two result', result);
-              var locationUrl = result.data.location;
-              var stepThree = $payroc.stepThree(locationUrl);
-              stepThree.then( function ( result ) {
-                console.log('step three result', result);
-              }, function errorCallback ( response ) {
-                console.log('error in step three payroc', response);
-              });
-            }, function errorCallback ( response ) {
-              console.log('error in step two payroc', response);
-            });
-          }, function errorCallback( response) {
-            console.log('error in step one payroc', response);
-          });
-      });
-    }
+payrocngular.provider('Payroc', function( ) {
+  var options = {
+    stepOnePath: null,
+    stepTwoPath: null
   };
-}]);
+
+  this.setStepOnePath = function(path) {
+    options.stepOnePath = path;
+  }
+
+  this.setStepTwoPath = function(path) {
+    options.stepTwoPath = path;
+  } 
+
+  this.$get = [ '$payroc', function( $payroc ) {
+    var svc = {
+      payment: function(nonSensitiveData, sensitiveData, callback) {
+        var stepOnePath = options.stepOnePath;
+        var stepTwoPath = options.stepTwoPath;
+	
+        var stepOne = $payroc.stepOne(stepOnePath, nonSensitiveData);
+        
+        /* execute step one */
+        stepOne.then(function ( result ) {
+         
+          var formUrl = result.data.response['form-url'][0];
+
+          /* maybe set to invalid endpoint then return error */
+          if ( typeof formUrl === 'undefined' ) {
+            callback({error: 1, log: 'form-url invalid'});
+          } else {
+            
+            sensitiveData['form-url'] = formUrl;
+      
+            var stepTwo = $payroc.stepTwo(stepTwoPath, sensitiveData);
+ 
+            /* execute step two */
+            stepTwo.then( function ( result ) {
+              
+              var locationUrl = result.data.location;
+              
+               /* maybe set to invalid location then return error */
+               if ( typeof locationUrl === 'undefined' ) {
+                 callback({error: 2, log: 'location url invalid'});
+               } else {
+                 var stepThree = $payroc.stepThree(locationUrl);
+               
+                 stepThree.then( function ( result ) {
+                   callback(result);
+                 }, function errorCallback ( response ) {
+                   callback({error: 3, log: response});
+                 });
+               }
+            }, function errorCallback ( response ) {
+              callback({error: 2, log: response});
+            });
+          }
+        }, function errorCallback ( response ) {
+          callback({error: 2, log: response});
+        });
+      }
+    };
+    return svc;
+    }
+  ];
+});
 
 },{"./angular-payroc-factory":2}]},{},[1]);
