@@ -6,8 +6,9 @@
 
     <div ng-app="example">
 
-      <form btf-form-payroc>
+      <form ng-controller="ExampleController" ng-submit="buy()">
         <h1>Buy some things</h1>     
+        {{status}}
         <input
           type="submit"
           value="Buy for $14"
@@ -19,11 +20,41 @@
     <script src="/angular.js"></script>
     <script src="/payroc-angular.js"></script>
     <script>
-      angular.module('example', ['angular-payroc'])
-             .config([ 'payrocConfigProvider', function(payrocConfigProvider) {
-               payrocConfigProvider.setStepOnePath('/step-one-path');
-               payrocConfigProvider.setStepTwoPath('/step-two-path');
-             }]);
+      var myApp = angular.module('example', ['angular-payroc'])
+        .config([ 'PayrocProvider', function(PayrocProvider) {
+          PayrocProvider.setStepOnePath('/step-one-path');
+          PayrocProvider.setStepTwoPath('/step-two-path');
+      }]);
+      myApp.controller('ExampleController', ['$scope', 'Payroc', function( $scope, Payroc ) {
+        /* maybe recover this from form */
+        $scope.nonSensitiveData = {
+          'amount': '14.00',
+          'currency': 'USD',
+          'order-id': '1234',
+          'order-description': 'Small Order',
+          'merchant-defined-field-1': 'Red',
+          'merchant-defined-field-2': 'Medium',
+          'tax-amount': '0.00',
+          'shipping-amount': '0.00'  
+        };
+
+        /* also recover this from form */
+        $scope.sensitiveData = {
+          'billing-cc-number': '4111111111111111',
+          'billing-cc-exp': '1012',
+          'cvv': '2001'
+        };
+
+	$scope.status = 'BUY!!';
+
+        $scope.buy = function() {
+          $scope.status = "BUYING!!";
+          Payroc.payment($scope.nonSensitiveData, $scope.sensitiveData, function(result) {
+            console.log(result) // yay
+	    $scope.status = result.data;
+          });
+        }; 
+      }]);
     </script>
   </body>
 </html>
